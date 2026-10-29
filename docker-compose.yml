@@ -1,0 +1,32 @@
+version: '3.8'
+
+services:
+  slm-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: slm-serving-backend
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_ID_OR_PATH=HuggingFaceTB/SmolLM-135M-Instruct
+      - LORA_ADAPTER_PATH=/app/models/fine_tuned_slm
+      - DEVICE=cpu
+      - MAX_NEW_TOKENS=512
+      - TEMPERATURE=0.2
+      - PORT=8000
+    volumes:
+      # Mount local models directory to load fine-tuned weights without rebuilding image
+      - ./models:/app/models:ro
+      # Cache Hugging Face models across container restarts
+      - hf_cache:/root/.cache/huggingface
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  hf_cache:
